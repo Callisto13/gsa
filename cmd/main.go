@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"github.com/Callisto13/gsa"
+	humanize "github.com/dustin/go-humanize"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -15,10 +16,12 @@ func main() {
 	var (
 		grootfsConfig string
 		grootfsBin    string
+		humanReadble  bool
 	)
 
 	flag.StringVar(&grootfsConfig, "grootfs-config", "/var/vcap/jobs/garden/config/grootfs_config.yml", "path to grootfs' config")
 	flag.StringVar(&grootfsBin, "grootfs-bin", "/var/vcap/packages/grootfs/bin/grootfs", "path to the grootfs bin")
+	flag.BoolVar(&humanReadble, "r", false, "human readable result")
 	flag.Parse()
 
 	if _, err := os.Stat(grootfsBin); os.IsNotExist(err) {
@@ -38,6 +41,13 @@ func main() {
 	}
 
 	usage := gsa.GrootStoreUsage(grootfsBin, store, grootfsConfig)
+
+	if humanReadble {
+		fmt.Printf("Containers: %s\n", humanize.Bytes(usage.Containers))
+		fmt.Printf("Layers: %s (of which Active: %s)\n", humanize.Bytes(usage.Layers), humanize.Bytes(usage.Active))
+		fmt.Println(humanize.Bytes(usage.Total))
+		os.Exit(0)
+	}
 
 	result, err := json.Marshal(usage)
 	if err != nil {

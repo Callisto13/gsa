@@ -10,14 +10,15 @@ import (
 )
 
 type StoreUsage struct {
-	Containers int64 `json:"total_bytes_containers"`
-	Layers     int64 `json:"total_bytes_layers"`
-	Active     int64 `json:"total_bytes_active_layers"`
+	Containers uint64 `json:"total_bytes_containers"`
+	Layers     uint64 `json:"total_bytes_layers"`
+	Active     uint64 `json:"total_bytes_active_layers"`
+	Total      uint64 `json:"total_bytes_store"`
 }
 
 type diskUsage struct {
-	TotalBytesUsed     int64 `json:"total_bytes_used"`
-	ExclusiveBytesUsed int64 `json:"exclusive_bytes_used"`
+	TotalBytesUsed     uint64 `json:"total_bytes_used"`
+	ExclusiveBytesUsed uint64 `json:"exclusive_bytes_used"`
 }
 
 type imageStats struct {
@@ -25,15 +26,15 @@ type imageStats struct {
 }
 
 type volumeMeta struct {
-	Size int64 `json:"Size"`
+	Size uint64 `json:"Size"`
 }
 
 func GrootStoreUsage(bin, store, config string) StoreUsage {
 	var (
 		err        error
-		containers int64
-		layers     int64
-		active     int64
+		containers uint64
+		layers     uint64
+		active     uint64
 	)
 
 	containers, err = getDiskTotalContainers(bin, store, config)
@@ -55,16 +56,17 @@ func GrootStoreUsage(bin, store, config string) StoreUsage {
 		Containers: containers,
 		Layers:     layers,
 		Active:     active,
+		Total:      containers + layers,
 	}
 }
 
-func getDiskTotalContainers(bin, store, config string) (int64, error) {
+func getDiskTotalContainers(bin, store, config string) (uint64, error) {
 	contents, err := ioutil.ReadDir(filepath.Join(store, "images"))
 	if err != nil {
 		return 0, err
 	}
 
-	var total int64
+	var total uint64
 
 	for _, dir := range contents {
 		args := []string{"--config", config, "stats", dir.Name()}
@@ -85,8 +87,8 @@ func getDiskTotalContainers(bin, store, config string) (int64, error) {
 	return total, nil
 }
 
-func getDiskTotalVolumes(store string) (int64, error) {
-	var total int64
+func getDiskTotalVolumes(store string) (uint64, error) {
+	var total uint64
 	contents, err := ioutil.ReadDir(filepath.Join(store, "meta"))
 	if err != nil {
 		return 0, err
@@ -106,8 +108,8 @@ func getDiskTotalVolumes(store string) (int64, error) {
 	return total, nil
 }
 
-func getDiskTotalActiveVolumes(store string) (int64, error) {
-	var total int64
+func getDiskTotalActiveVolumes(store string) (uint64, error) {
+	var total uint64
 	contents, err := ioutil.ReadDir(filepath.Join(store, "meta", "dependencies"))
 	if err != nil {
 		return 0, err
@@ -142,7 +144,7 @@ func getDiskTotalActiveVolumes(store string) (int64, error) {
 	return total, nil
 }
 
-func readVolumeMeta(file string) (int64, error) {
+func readVolumeMeta(file string) (uint64, error) {
 	contents, err := ioutil.ReadFile(file)
 	if err != nil {
 		return 0, err

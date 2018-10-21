@@ -46,6 +46,24 @@ var _ = Describe("Integration", func() {
 		Expect(gsaOutput.String()).To(ContainSubstring("\"total_bytes_active_layers\":1234"))
 	})
 
+	It("returns total store usage (excl meta)", func() {
+		err := gsaCmd.Run()
+		Expect(err).NotTo(HaveOccurred())
+		Expect(gsaOutput.String()).To(ContainSubstring("\"total_bytes_store\":2714"))
+	})
+
+	Context("the -h flag", func() {
+		JustBeforeEach(func() {
+			gsaCmd.Args = append(gsaCmd.Args, "-r")
+		})
+
+		It("returns a human readable result", func() {
+			err := gsaCmd.Run()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(gsaOutput.String()).To(Equal("Containers: 246 B\nLayers: 2.5 kB (of which Active: 1.2 kB)\n2.7 kB\n"))
+		})
+	})
+
 	Context("when the grootfs binary cannot be found", func() {
 		BeforeEach(func() {
 			grootfs = "/not/found"
