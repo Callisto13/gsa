@@ -14,3 +14,5 @@ Usage of gsa:
 $ gsa
 {"total_bytes_containers":95608832,"total_bytes_layers":893982999,"total_bytes_active_layers":893982999}
 ```
+
+note: grootfs only tracks the amount of container disk usage if the rootfs was created with a disk limit. if your containers (and rootfes) were made without limits, then grootfs will always report `"total_bytes_containers":0`.
