@@ -23,4 +23,4 @@ Layers: 894 MB (of which Active: 894 MB)
 990 MB
 ```
 
-note: grootfs only tracks the amount of container disk usage if the rootfs was created with a disk limit. if your containers (and rootfses) were made without limits, then grootfs will always report `"total_bytes_containers":0`.
+note: grootfs only tracks the amount of container disk usage if the rootfs was created with a disk limit. if your containers (and rootfses) were made without limits, then gsa will always report `"total_bytes_containers":0`.
