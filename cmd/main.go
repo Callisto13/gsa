@@ -4,12 +4,10 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
 
 	"github.com/Callisto13/gsa"
 	humanize "github.com/dustin/go-humanize"
-	yaml "gopkg.in/yaml.v2"
 )
 
 func main() {
@@ -34,13 +32,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	store, err := grootfsStorePath(grootfsConfig)
-	if err != nil {
-		fmt.Println("failed to read grootfs store path from config: " + err.Error())
-		os.Exit(1)
-	}
-
-	usage := gsa.GrootStoreUsage(grootfsBin, store, grootfsConfig)
+	usage := gsa.GrootStoreUsage(grootfsBin, grootfsConfig)
 
 	if humanReadble {
 		fmt.Printf("Containers: %s\n", humanize.Bytes(usage.Containers))
@@ -57,22 +49,4 @@ func main() {
 
 	fmt.Println(string(result))
 	os.Exit(0)
-}
-
-type config struct {
-	StorePath string `yaml:"store"`
-}
-
-func grootfsStorePath(path string) (string, error) {
-	yml, err := ioutil.ReadFile(path)
-	if err != nil {
-		return "", err
-	}
-
-	var c *config
-	if err = yaml.Unmarshal(yml, &c); err != nil {
-		return "", err
-	}
-
-	return c.StorePath, nil
 }

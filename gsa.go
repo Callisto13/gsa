@@ -5,8 +5,11 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"os"
 	"os/exec"
 	"path/filepath"
+
+	yaml "gopkg.in/yaml.v2"
 )
 
 type StoreUsage struct {
@@ -29,13 +32,24 @@ type volumeMeta struct {
 	Size uint64 `json:"Size"`
 }
 
-func GrootStoreUsage(bin, store, config string) StoreUsage {
+type config struct {
+	StorePath string `yaml:"store"`
+}
+
+func GrootStoreUsage(bin, config string) StoreUsage {
 	var (
 		err        error
+		store      string
 		containers uint64
 		layers     uint64
 		active     uint64
 	)
+
+	store, err = grootfsStorePath(config)
+	if err != nil {
+		fmt.Println("failed to read grootfs store path from config: " + err.Error())
+		os.Exit(1)
+	}
 
 	containers, err = getDiskTotalContainers(bin, store, config)
 	if err != nil {
@@ -58,6 +72,20 @@ func GrootStoreUsage(bin, store, config string) StoreUsage {
 		Active:     active,
 		Total:      containers + layers,
 	}
+}
+
+func grootfsStorePath(path string) (string, error) {
+	yml, err := ioutil.ReadFile(path)
+	if err != nil {
+		return "", err
+	}
+
+	var c *config
+	if err = yaml.Unmarshal(yml, &c); err != nil {
+		return "", err
+	}
+
+	return c.StorePath, nil
 }
 
 func getDiskTotalContainers(bin, store, config string) (uint64, error) {
