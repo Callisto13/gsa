@@ -19,6 +19,7 @@ var (
 	fakeGrootBin    string
 	gardenDepotDir  string
 	grootConfigFile string
+	grootConfigPath string
 	grootStorePath  string
 )
 
@@ -36,7 +37,7 @@ func TestIntegration(t *testing.T) {
 		tmpDir, err = ioutil.TempDir("", "gsa-integration")
 		Expect(err).NotTo(HaveOccurred())
 
-		grootConfigPath := filepath.Join(tmpDir, "grootfs")
+		grootConfigPath = filepath.Join(tmpDir, "grootfs")
 		Expect(os.MkdirAll(grootConfigPath, 0755)).To(Succeed())
 		grootStorePath = filepath.Join(tmpDir, "store")
 		Expect(os.MkdirAll(grootStorePath, 0755)).To(Succeed())
@@ -57,10 +58,10 @@ func TestIntegration(t *testing.T) {
 		Expect(ioutil.WriteFile(filepath.Join(grootDepsPath, "image:one-image.json"), []byte("[\"one-volume\"]"), 0755)).To(Succeed())
 		Expect(ioutil.WriteFile(filepath.Join(grootDepsPath, "image:two-image.json"), []byte("[\"one-volume\"]"), 0755)).To(Succeed())
 
-		type config struct {
+		type yamlConf struct {
 			StorePath string `yaml:"store"`
 		}
-		y := config{StorePath: grootStorePath}
+		y := yamlConf{StorePath: grootStorePath}
 		yml, err := yaml.Marshal(y)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(ioutil.WriteFile(grootConfigFile, yml, 0755)).To(Succeed())

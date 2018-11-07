@@ -14,12 +14,12 @@ func main() {
 	var (
 		grootfsConfig string
 		grootfsBin    string
-		humanReadble  bool
+		humanReadable bool
 	)
 
 	flag.StringVar(&grootfsConfig, "grootfs-config", "/var/vcap/jobs/garden/config/grootfs_config.yml", "path to grootfs' config")
 	flag.StringVar(&grootfsBin, "grootfs-bin", "/var/vcap/packages/grootfs/bin/grootfs", "path to the grootfs bin")
-	flag.BoolVar(&humanReadble, "r", false, "human readable result")
+	flag.BoolVar(&humanReadable, "r", false, "human readable result")
 	flag.Parse()
 
 	if _, err := os.Stat(grootfsBin); os.IsNotExist(err) {
@@ -32,9 +32,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	usage := gsa.GrootStoreUsage(grootfsBin, grootfsConfig)
+	usage, err := gsa.GrootStoreUsage(grootfsBin, grootfsConfig)
+	if err != nil {
+		fmt.Println("gsa failure: " + err.Error())
+		os.Exit(1)
+	}
 
-	if humanReadble {
+	if humanReadable {
 		fmt.Printf("Containers: %s\n", humanize.Bytes(usage.Containers))
 		fmt.Printf("Layers: %s (of which Active: %s)\n", humanize.Bytes(usage.Layers), humanize.Bytes(usage.Active))
 		fmt.Println(humanize.Bytes(usage.Total))

@@ -2,10 +2,10 @@ package gsa
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
-	"os"
 	"os/exec"
 	"path/filepath"
 
@@ -36,7 +36,7 @@ type config struct {
 	StorePath string `yaml:"store"`
 }
 
-func GrootStoreUsage(bin, config string) StoreUsage {
+func GrootStoreUsage(bin, config string) (StoreUsage, error) {
 	var (
 		err        error
 		store      string
@@ -47,8 +47,7 @@ func GrootStoreUsage(bin, config string) StoreUsage {
 
 	store, err = grootfsStorePath(config)
 	if err != nil {
-		fmt.Println("failed to read grootfs store path from config: " + err.Error())
-		os.Exit(1)
+		return StoreUsage{}, fmt.Errorf("failed to read grootfs store path from config: " + err.Error())
 	}
 
 	containers, err = getDiskTotalContainers(bin, store, config)
@@ -66,7 +65,7 @@ func GrootStoreUsage(bin, config string) StoreUsage {
 		Layers:     layers,
 		Active:     active,
 		Total:      containers + layers,
-	}
+	}, nil
 }
 
 func grootfsStorePath(path string) (string, error) {
@@ -78,6 +77,10 @@ func grootfsStorePath(path string) (string, error) {
 	var c *config
 	if err = yaml.Unmarshal(yml, &c); err != nil {
 		return "", err
+	}
+
+	if c == nil || c.StorePath == "" {
+		return "", errors.New("entry not found")
 	}
 
 	return c.StorePath, nil

@@ -2,7 +2,9 @@ package integration_test
 
 import (
 	"bytes"
+	"io/ioutil"
 	"os/exec"
+	"path/filepath"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -85,6 +87,19 @@ var _ = Describe("Integration", func() {
 			err := gsaCmd.Run()
 			Expect(err).To(HaveOccurred())
 			Expect(gsaOutput.String()).To(ContainSubstring("grootfs config not found"))
+		})
+	})
+
+	Context("when the grootfs store cannot be parsed from the config", func() {
+		BeforeEach(func() {
+			config = filepath.Join(grootConfigPath, "garbage-config.yml")
+			Expect(ioutil.WriteFile(config, []byte("some-garbage"), 0755)).To(Succeed())
+		})
+
+		It("fails", func() {
+			err := gsaCmd.Run()
+			Expect(err).To(HaveOccurred())
+			Expect(gsaOutput.String()).To(ContainSubstring("unmarshal errors"))
 		})
 	})
 })
