@@ -56,12 +56,7 @@ func GrootStoreUsage(bin, config string) StoreUsage {
 		log.Println("failed to get total container image disk usage: " + err.Error())
 	}
 
-	layers, err = getDiskTotalVolumes(store)
-	if err != nil {
-		log.Println("failed to get total volume/layer disk usage: " + err.Error())
-	}
-
-	active, err = getDiskTotalActiveVolumes(store)
+	layers, active, err = getDiskTotalVolumes(store)
 	if err != nil {
 		log.Println("failed to get active layers disk usage: " + err.Error())
 	}
@@ -115,61 +110,83 @@ func getDiskTotalContainers(bin, store, config string) (uint64, error) {
 	return total, nil
 }
 
-func getDiskTotalVolumes(store string) (uint64, error) {
-	var total uint64
-	contents, err := ioutil.ReadDir(filepath.Join(store, "meta"))
+func getDiskTotalVolumes(store string) (uint64, uint64, error) {
+	vols, err := getListVolumes(store)
 	if err != nil {
-		return 0, err
+		return 0, 0, err
 	}
 
-	for _, dir := range contents {
-		if !dir.IsDir() {
-			size, err := readVolumeMeta(filepath.Join(store, "meta", dir.Name()))
-			if err != nil {
-				return 0, err
-			}
-
-			total += size
-		}
-	}
-
-	return total, nil
-}
-
-func getDiskTotalActiveVolumes(store string) (uint64, error) {
-	var total uint64
-	contents, err := ioutil.ReadDir(filepath.Join(store, "meta", "dependencies"))
+	aVols, err := getListActiveVolumes(store)
 	if err != nil {
-		return 0, err
+		return 0, 0, err
 	}
 
-	var active []string
+	var total, active uint64
 
-	for _, dir := range contents {
-		if !dir.IsDir() {
-			shas, err := ioutil.ReadFile(filepath.Join(store, "meta", "dependencies", dir.Name()))
-			if err != nil {
-				return 0, err
-			}
-
-			var s []string
-			if err := json.Unmarshal(shas, &s); err != nil {
-				return 0, err
-			}
-			active = append(active, s...)
-		}
-	}
-
-	for _, a := range uniq(active) {
-		size, err := readVolumeMeta(filepath.Join(store, "meta", fmt.Sprintf("volume-%s", a)))
+	for _, dir := range difference(vols, aVols) {
+		size, err := readVolumeMeta(filepath.Join(store, "meta", dir))
 		if err != nil {
-			return 0, err
+			return 0, 0, err
 		}
 
 		total += size
 	}
 
-	return total, nil
+	for _, dir := range aVols {
+		size, err := readVolumeMeta(filepath.Join(store, "meta", dir))
+		if err != nil {
+			return 0, 0, err
+		}
+
+		total += size
+		active += size
+	}
+
+	return total, active, nil
+}
+
+func getListVolumes(store string) ([]string, error) {
+	files, err := ioutil.ReadDir(filepath.Join(store, "meta"))
+	if err != nil {
+		return []string{}, err
+	}
+
+	var vols []string
+	for _, dir := range files {
+		if !dir.IsDir() {
+			vols = append(vols, dir.Name())
+		}
+	}
+
+	return vols, nil
+}
+
+func getListActiveVolumes(store string) ([]string, error) {
+	contents, err := ioutil.ReadDir(filepath.Join(store, "meta", "dependencies"))
+	if err != nil {
+		return []string{}, err
+	}
+
+	var shas []string
+	for _, dir := range contents {
+		if !dir.IsDir() {
+			contents, err := ioutil.ReadFile(filepath.Join(store, "meta", "dependencies", dir.Name()))
+			if err != nil {
+				return []string{}, err
+			}
+
+			if err := json.Unmarshal(contents, &shas); err != nil {
+				return []string{}, err
+			}
+		}
+	}
+
+	var active []string
+	for _, sha := range uniq(shas) {
+		active = append(active, fmt.Sprintf("volume-%s", sha))
+	}
+
+	return active, nil
 }
 
 func readVolumeMeta(file string) (uint64, error) {
@@ -184,6 +201,22 @@ func readVolumeMeta(file string) (uint64, error) {
 	}
 
 	return vm.Size, nil
+}
+
+func difference(a, b []string) []string {
+	inB := map[string]bool{}
+	for _, x := range b {
+		inB[x] = true
+	}
+
+	diff := []string{}
+	for _, x := range a {
+		if _, ok := inB[x]; !ok {
+			diff = append(diff, x)
+		}
+	}
+
+	return diff
 }
 
 func uniq(elements []string) []string {
